@@ -1,22 +1,21 @@
-##***************************
-## Assignment 1
-##
-## Ali Al-Reda El-Zein 
-##
-## 2026-11-02
-##
-##***************************
+#*************************************************************************************
+#Your name: Jordyn Angela Anene Your Student ID:
+#Name of peer who was primary author of the script you edited:  Ali Al-Reda El-Zein
+#Your GitHub link: https://github.com/JordynAngela
+#GitHub link of peer: https://github.com/AliZein-1
+#*************************************************************************************
+## Load packages -----
 
-## load packages -----
 rm(list = ls())
 
 library(tidyverse)
 
-## import data -----
 
-df_trich_s <- read_csv("../data/trichinella_spiralis_te.csv")
-genus_types <- read_csv("../data/2026-10-19_trich_genotypes.csv")
-trich_zb <- read_csv("../data/trich_z.csv")
+## Import data -----
+
+df_trich_s <- read_csv("data/trichinella_spiralis_te.csv")
+genus_types <- read_csv("data/2026-10-19_trich_genotypes.csv")
+trich_zb <- read_csv("data/trich_z.csv")
 
 ## filtering data for DNA transposons for T. zimbabwensis -----
 
@@ -49,7 +48,7 @@ trich_s <- df_trich_s |>
 
 trich_s$species = c("Trichinella spiralis")
 
-  
+
 ## identifying and filtering the common DNA transposons between the two species -----
 
 trich_s$matching_class |> unique()
@@ -57,23 +56,54 @@ trich_s$matching_class |> unique()
 trich_z$matching_class |> unique()
 
 dte_common <- c("DNA/PIF-Harbinger", "DNA/TcMar-Tc1", "DNA/MULE-MuDR", 
-               "DNA/TcMar-Tc4", "DNA/TcMar-Pogo", "DNA/CMC-Chapaev", 
-            "DNA/TcMar-Mariner", "RC/Helitron")
+                "DNA/TcMar-Tc4", "DNA/TcMar-Pogo", "DNA/CMC-Chapaev", 
+                "DNA/TcMar-Mariner", "RC/Helitron")
+#JA Edit: After checking the data, I found that the two measurement-based distinct() calls changed the largest-element result in 5 of 16 species/class comparisons and changed the percent-insertion value in 4 of those 5.
+#They removed about 57% of the filtered observations—74 of 130 T. spiralis hits and 115 of 204 T. zimbabwensis hits—even though these were separate hits sharing a measurement, not duplicate records. 
+#I recommend keeping all hits and selecting the largest hit or tied hits within each class from the complete data, so the analysis preserves the true maximum for the research question.
+#JA# Replacing this to keep all common classes# ts_common <- trich_s |> 
+#JA# Replacing this to keep all common classes# group_by(matching_class) |> 
+#JA# Replacing this to keep all common classes# select(matching_class, qry_width, perc_insert, species) |> 
+#JA# Replacing this to keep all common classes# filter(matching_class %in% dte_common) |> 
+#JA# remove the following 2 lines because this actually changes the plot shown 
+#JA# (remove this) Don't deduplicate by the measurements# distinct(perc_insert, .keep_all = TRUE) |> 
+#JA# (remove this)  Don't deduplicate by the measurements# distinct(qry_width, .keep_all = TRUE)
+#JA#tz_common <- trich_z |> 
+#JA# (removed) group_by(matching_class) |> 
+#JA# (removed) select(matching_class, qry_width, perc_insert, species) |> 
+#JA# (removed) filter(matching_class %in% dte_common) |> 
+#JA# (removed) distinct(perc_insert, .keep_all = TRUE) |> 
+#JA# (removed) distinct(qry_width, .keep_all = TRUE)
 
-ts_common <- trich_s |> 
-  group_by(matching_class) |> 
-  select(matching_class, qry_width, perc_insert, species) |> 
-  filter(matching_class %in% dte_common) |> 
-  distinct(perc_insert, .keep_all = TRUE) |> 
-  distinct(qry_width, .keep_all = TRUE)
 
-tz_common <- trich_z |> 
-  group_by(matching_class) |> 
-  select(matching_class, qry_width, perc_insert, species) |> 
-  filter(matching_class %in% dte_common) |> 
-  distinct(perc_insert, .keep_all = TRUE) |> 
-  distinct(qry_width, .keep_all = TRUE)
+#JA# Keep every hit in the common DNA transposon classes
+ts_common <- trich_s |>
+  filter(matching_class %in% dte_common) |>
+  select(
+    matching_class, qry_id, qry_start, qry_end, repeat_id,
+    in_repeat_start, in_repeat_end, qry_width, perc_insert, species
+  )
 
+tz_common <- trich_z |>
+  filter(matching_class %in% dte_common) |>
+  select(
+    matching_class, qry_id, qry_start, qry_end, repeat_id,
+    in_repeat_start, in_repeat_end, qry_width, perc_insert, species
+  )
+#JA# this code keeps all hits for the common classes
+#JA# then selects the largest hit or hits per class from the full data.
+ts_largest <- ts_common |>
+  group_by(matching_class) |>
+  slice_max(order_by = qry_width, n = 1, with_ties = TRUE) |>
+  ungroup()
+
+tz_largest <- tz_common |>
+  group_by(matching_class) |>
+  slice_max(order_by = qry_width, n = 1, with_ties = TRUE) |>
+  ungroup()
+#JA# the with_ties keep any max width results that tied
+#JA# combine the species if you wish to run comparisons
+combined_largest <- bind_rows(ts_largest, tz_largest)
 
 ## filtering the 5 largest DNA transposons in the two species -----
 
@@ -137,8 +167,8 @@ combined_top5 <- ggplot(
   combined_5,
   aes(x =qry_width, y =perc_insert, 
       colour = matching_class, shape = combined_5$species)) +
-    geom_point(size = 3) + 
-    geom_line(size = 0.5) +
+  geom_point(size = 3) + 
+  geom_line(size = 0.5) +
   xlim(0,750) +
   ylim(0,15) +
   labs(title = "The Effects of Sequence Length on Percent Insertion in T. spiralis & T.zimbabwensis for Each DNA Transposon Type.",
@@ -172,8 +202,4 @@ combined_largest <- ggplot() +
 print(combined_largest)
 
 ggsave("combined_largest.png", path = "../output")
-
-
-
-
 
