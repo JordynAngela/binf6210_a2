@@ -58,7 +58,9 @@ trich_z$matching_class |> unique()
 dte_common <- c("DNA/PIF-Harbinger", "DNA/TcMar-Tc1", "DNA/MULE-MuDR", 
                 "DNA/TcMar-Tc4", "DNA/TcMar-Pogo", "DNA/CMC-Chapaev", 
                 "DNA/TcMar-Mariner", "RC/Helitron")
-#JA Edit:
+#JA Edit: After checking the data, I found that the two measurement-based distinct() calls changed the largest-element result in 5 of 16 species/class comparisons and changed the percent-insertion value in 4 of those 5.
+#They removed about 57% of the filtered observations—74 of 130 T. spiralis hits and 115 of 204 T. zimbabwensis hits—even though these were separate hits sharing a measurement, not duplicate records. 
+#I recommend keeping all hits and selecting the largest hit or tied hits within each class from the complete data, so the analysis preserves the true maximum for the research question.
 #JA# Replacing this to keep all common classes# ts_common <- trich_s |> 
 #JA# Replacing this to keep all common classes# group_by(matching_class) |> 
 #JA# Replacing this to keep all common classes# select(matching_class, qry_width, perc_insert, species) |> 
@@ -99,7 +101,10 @@ tz_largest <- tz_common |>
   group_by(matching_class) |>
   slice_max(order_by = qry_width, n = 1, with_ties = TRUE) |>
   ungroup()
-#Ja# the with_ties keep any max width results that tied
+#JA# the with_ties keep any max width results that tied
+#JA# combine the species if you wish to run comparisons
+combined_largest <- bind_rows(ts_largest, tz_largest)
+
 ## filtering the 5 largest DNA transposons in the two species -----
 
 ts_5 <- ts_common|> 
