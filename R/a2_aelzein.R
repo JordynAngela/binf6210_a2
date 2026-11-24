@@ -1,5 +1,5 @@
 #*************************************************************************************
-#Your name: Jordyn Angela Anene Your Student ID:
+#Your name: Jordyn Angela Anene Your Student ID:1153260
 #Name of peer who was primary author of the script you edited:  Ali Al-Reda El-Zein
 #Your GitHub link: https://github.com/JordynAngela
 #GitHub link of peer: https://github.com/AliZein-1
@@ -58,6 +58,73 @@ trich_z$matching_class |> unique()
 dte_common <- c("DNA/PIF-Harbinger", "DNA/TcMar-Tc1", "DNA/MULE-MuDR", 
                 "DNA/TcMar-Tc4", "DNA/TcMar-Pogo", "DNA/CMC-Chapaev", 
                 "DNA/TcMar-Mariner", "RC/Helitron")
+#JA# adding  a data visualization to check the data for biases from distinct(perc_insert, .keep_all = TRUE) |> and distinct(qry_width, .keep_all = TRUE) 
+#JA# check to see if there are any duplicates that needed to be removed
+hit_key <- c(
+  "qry_id", "qry_start", "qry_end", "repeat_id",
+  "in_repeat_start", "in_repeat_end"
+)
+#JA#check if the columns are present for both
+setdiff(hit_key, names(df_trich_s))
+setdiff(hit_key, names(trich_zb))
+#check if the columns are present for both
+dupe_hits_s <- df_trich_s |>
+  count(across(all_of(hit_key)), name = "n") |>
+  filter(n > 1)
+
+dupe_hits_z <- trich_zb |>
+  count(across(all_of(hit_key)), name = "n") |>
+  filter(n > 1)
+dupe_hits_s
+dupe_hits_z
+#JA#zero identical full rows were found and found no duplicate repeat hits.
+#JA# before moving on we must identify the transposon classes that exist in these files (independently and together)
+sort(unique(trich_s$matching_class))
+sort(unique(trich_z$matching_class))
+
+common_classes_actual <- intersect(
+  unique(trich_s$matching_class),
+  unique(trich_z$matching_class)
+)
+
+sort(common_classes_actual)
+setequal(dte_common, common_classes_actual)
+#JA# creating a vectore that has eight DNA transposon classes that appear in both filtered datasets
+
+dte_common <- c(
+  "DNA/PIF-Harbinger",
+  "DNA/TcMar-Tc1",
+  "DNA/MULE-MuDR",
+  "DNA/TcMar-Tc4",
+  "DNA/TcMar-Pogo",
+  "DNA/CMC-Chapaev",
+  "DNA/TcMar-Mariner",
+  "RC/Helitron"
+)
+
+ts_before <- trich_s |>
+  filter(matching_class %in% dte_common)
+ts_after <- ts_before |>
+  distinct(matching_class, perc_insert, .keep_all = TRUE) |>
+  distinct(matching_class, qry_width, .keep_all = TRUE)
+
+tz_before <- trich_z |>
+  filter(matching_class %in% dte_common)
+
+tz_after <- tz_before |>
+  distinct(matching_class, perc_insert, .keep_all = TRUE) |>
+  distinct(matching_class, qry_width, .keep_all = TRUE)
+
+#JA# printed the difference in the observations kept and removed by bias in a tibble which can later be used to generate a plot or other visulizations
+tibble(
+  species = c("T. spiralis", "T. zimbabwensis"),
+  before = c(nrow(ts_before), nrow(tz_before)),
+  after = c(nrow(ts_after), nrow(tz_after)),
+  rows_removed = c(
+    nrow(ts_before) - nrow(ts_after),
+    nrow(tz_before) - nrow(tz_after)
+  )
+)
 #JA Edit: After checking the data, I found that the two measurement-based distinct() calls changed the largest-element result in 5 of 16 species/class comparisons and changed the percent-insertion value in 4 of those 5.
 #They removed about 57% of the filtered observations—74 of 130 T. spiralis hits and 115 of 204 T. zimbabwensis hits—even though these were separate hits sharing a measurement, not duplicate records. 
 #I recommend keeping all hits and selecting the largest hit or tied hits within each class from the complete data, so the analysis preserves the true maximum for the research question.
@@ -68,12 +135,12 @@ dte_common <- c("DNA/PIF-Harbinger", "DNA/TcMar-Tc1", "DNA/MULE-MuDR",
 #JA# remove the following 2 lines because this actually changes the plot shown 
 #JA# (remove this) Don't deduplicate by the measurements# distinct(perc_insert, .keep_all = TRUE) |> 
 #JA# (remove this)  Don't deduplicate by the measurements# distinct(qry_width, .keep_all = TRUE)
-#JA#tz_common <- trich_z |> 
-#JA# (removed) group_by(matching_class) |> 
-#JA# (removed) select(matching_class, qry_width, perc_insert, species) |> 
-#JA# (removed) filter(matching_class %in% dte_common) |> 
-#JA# (removed) distinct(perc_insert, .keep_all = TRUE) |> 
-#JA# (removed) distinct(qry_width, .keep_all = TRUE)
+tz_common <- trich_z |> 
+group_by(matching_class) |> 
+select(matching_class, qry_width, perc_insert, species) |> 
+ filter(matching_class %in% dte_common) |> 
+distinct(perc_insert, .keep_all = TRUE) |> 
+distinct(qry_width, .keep_all = TRUE)
 
 
 #JA# Keep every hit in the common DNA transposon classes
@@ -103,8 +170,15 @@ tz_largest <- tz_common |>
   ungroup()
 #JA# the with_ties keep any max width results that tied
 #JA# combine the species if you wish to run comparisons
-combined_largest <- bind_rows(ts_largest, tz_largest)
+ts_largest_plot <- ts_largest |>
+  ungroup() |>
+  select(species, matching_class, qry_width, perc_insert)
 
+tz_largest_plot <- tz_largest |>
+  ungroup() |>
+  select(species, matching_class, qry_width, perc_insert)
+
+combined_largest <- bind_rows(ts_largest_plot, tz_largest_plot)
 ## filtering the 5 largest DNA transposons in the two species -----
 
 ts_5 <- ts_common|> 
